@@ -144,12 +144,9 @@ Missions = {'Attack': 1,
             'Expedition': 15}
 
 
-PlanetType = {'Planet': 1,
-            'DebriField': 2,
-            'Moon': 3
 
 
-}
+
 
 
 Formules = {
@@ -224,3 +221,10 @@ Formules = {
         }
     }
 
+
+PlanetType = {'Planet': 1,
+            'DebriField': 2,
+            'Moon': 3
+
+
+}
