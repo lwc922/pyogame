@@ -535,8 +535,9 @@ class OGame(object):
         if soup.find('head'):
             raise NOT_LOGGED
         events = soup.findAll('tr', {'class': 'eventFleet'})
-        events = filter(lambda x: 'partnerInfo' not in x.get('class', []), events)
-        events += soup.findAll('tr', {'class': 'allianceAttack'})
+        eventsDup = filter(lambda x: 'partnerInfo' not in x.get('class', []), events)
+        events = soup.findAll('tr', {'class': 'allianceAttack'})
+        events += eventsDup
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
