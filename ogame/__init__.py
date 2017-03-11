@@ -577,6 +577,7 @@ class OGame(object):
         events = soup.findAll('tr', {'class': 'allianceAttack'})
         events += eventsDup
         # unsupported operand type(s) for +=: 'filter' and 'ResultSet'
+
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
