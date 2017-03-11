@@ -527,7 +527,7 @@ class OGame(object):
         fleet_ids = [span.get('ref') for span in spans]
         return fleet_ids
 
-    def get_attacks(self):
+    def get_attacks(self, checkSpyAlso=False):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         res = self.session.get(self.get_url('eventList'), params={'ajax': 1},
                                headers=headers).content
@@ -538,11 +538,17 @@ class OGame(object):
         eventsDup = filter(lambda x: 'partnerInfo' not in x.get('class', []), events)
         events = soup.findAll('tr', {'class': 'allianceAttack'})
         events += eventsDup
+        # unsupported operand type(s) for +=: 'filter' and 'ResultSet'
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
             if mission_type not in [1, 2]:
-                continue
+                if checkSpyAlso and mission_type not in [6] :
+                    continue
+                elif checkSpyAlso is False :
+                    continue
+                else:
+                    None
 
             attack = {}
             attack.update({'mission_type': mission_type})
@@ -568,6 +574,8 @@ class OGame(object):
             second = int(second)
             arrival_time = self.get_datetime_from_time(hour, minute, second)
             attack.update({'arrival_time': arrival_time})
+
+            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
