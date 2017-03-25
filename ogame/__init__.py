@@ -630,9 +630,9 @@ class OGame(object):
             arrival_time = self.get_datetime_from_time(hour, minute, second)
             attack.update({'arrival_time': arrival_time})
             #todo Mn replace 제대로
-            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
-
+            #attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
             attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
+
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
