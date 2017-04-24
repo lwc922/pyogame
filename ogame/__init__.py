@@ -113,7 +113,7 @@ class OGame(object):
         self.password = password
         self.universe_speed = 1
         self.server_url = ''
-        self.server_tz = 'GMT+0'
+        self.server_tz = 'GMT+1'
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
