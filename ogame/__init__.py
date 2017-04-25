@@ -450,7 +450,7 @@ class OGame(object):
             elem_id = arg
             self._build(planet_id, elem_id, cancel=cancel)
 
-    def send_fleet(self, planet_id, ships, speed, where, mission, resources):
+    def send_fleet(self, planet_id, ships, speed, where, mission, resources, acsDefHoldTime=0):
         def get_hidden_fields(html):
             soup = BeautifulSoup(html, 'lxml')
             inputs = soup.findAll('input', {'type': 'hidden'})
@@ -491,7 +491,9 @@ class OGame(object):
         payload.update({'crystal': resources.get('crystal'),
                         'deuterium': resources.get('deuterium'),
                         'metal': resources.get('metal'),
-                        'mission': mission})
+                        'mission': mission ,
+                        'holdingtime' : acsDefHoldTime
+                        })
         res = self.session.post(self.get_url('movement'), data=payload).content
 
         res = self.session.get(self.get_url('movement')).content
