@@ -865,6 +865,7 @@ class OGame(object):
         return True
 
 
+
     def send_minifleet_spy(self, where, ship_count, token):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'mission': 6,
@@ -986,13 +987,15 @@ class OGame(object):
 
 
 
-    def Consommation(type, batiment, lvl):
+ 
+    def Consommation(self, type, batiment, lvl):
+
         """ Retourne la consommation du batiment du level lvl + 1 """
         energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (constants.Formules[type][batiment]['consommation'][1]**lvl)
         energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl+1) * (constants.Formules[type][batiment]['consommation'][1]**(lvl+1))
         return math.floor(energieNextLvl - energieLvl)
 
-    def building_cost(type, batiment, lvl):
+    def building_cost(self, type, batiment, lvl):
         """ Retourne le cout d'un batiment lvl + 1 """
         cost = {}
         cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0]*constants.Formules[type][batiment]['cout']['Metal'][1]**(lvl-1)))
