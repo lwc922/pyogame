@@ -728,7 +728,7 @@ class OGame(object):
             is_idle = box.find('td', {'class': 'idle'}) is not None
             res[names[idx]] = []
             if not is_idle:
-                name = box.find('th').text
+                name = box.find('th').text.encode('utf8')
                 short_name = ''.join(name.split())
                 code = get_code(short_name)
                 desc = box.find('td', {'class': 'desc'}).text
@@ -786,6 +786,7 @@ class OGame(object):
         except ValueError:
             raise NOT_LOGGED
         return obj
+
 
     def get_spy_reports(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -848,6 +849,18 @@ class OGame(object):
         res = self.session.get(self.get_url('jumpgate_execute')).content
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
-    
-    
+
+	def Consommation(type, batiment, lvl):
+	    """ Retourne la consommation du batiment du level lvl + 1 """
+	    energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (constants.Formules[type][batiment]['consommation'][1]**lvl)
+	    energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl+1) * (constants.Formules[type][batiment]['consommation'][1]**(lvl+1))
+	    return math.floor(energieNextLvl - energieLvl)
+	
+	def building_cost(type, batiment, lvl):
+	    """ Retourne le cout d'un batiment lvl + 1 """
+	    cost = {}
+	    cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0]*constants.Formules[type][batiment]['cout']['Metal'][1]**(lvl-1)))
+	    cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0]*constants.Formules[type][batiment]['cout']['Crystal'][1]**(lvl-1)))
+	    cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0]*constants.Formules[type][batiment]['cout']['Deuterium'][1]**(lvl-1)))
+	    return cost
 
