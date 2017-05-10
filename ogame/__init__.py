@@ -864,3 +864,7 @@ class OGame(object):
         cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0]*constants.Formules[type][batiment]['cout']['Deuterium'][1]**(lvl-1)))
         return cost
 
+    def storageSize(self, type, batiment, lvl):
+        capacity = -1
+        capacity = 5000 * int(math.floor(2.5 * (math.e ** ( constants.Formules[type][batiment] * 20 / 33))))
+        return capacity
