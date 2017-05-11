@@ -876,6 +876,17 @@ class OGame(object):
                                            constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
         return cost
 
+    def getProduction(self, type, batiment, lvl):
+        """ Retourne le cout d'un batiment lvl + 1 """
+        production = 0
+        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
+                      constants.Formules[type][batiment]['cout']['Metal'][1] ** lvl) + \
+                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
+
+
+        return production
+
+
     def storageSize(self, type, batiment, lvl):
         capacity = -1
         capacity = 5000 * int(math.floor(2.5 * (math.e ** (constants.Formules[type][batiment] * 20 / 33))))
