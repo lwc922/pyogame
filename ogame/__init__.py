@@ -1060,7 +1060,7 @@ class OGame(object):
         """ Retourne le cout d'un batiment lvl + 1 """
         production = 0
         production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      constants.Formules[type][batiment]['cout']['Metal'][1] ** lvl) + \
+                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
                      self.universe_speed * constants.Formules[type][batiment]['production'][0]
 
 
