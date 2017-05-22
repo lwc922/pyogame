@@ -114,7 +114,8 @@ class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
                  sandbox=False, sandbox_obj=None):
         self.session = requests.session()
-        self.session.headers.update({'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
+        self.session.headers.update({
+                                        'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
