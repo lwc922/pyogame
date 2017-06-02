@@ -796,7 +796,7 @@ class OGame(object):
             raise NOT_LOGGED
         return obj
 
-<<<<<<< HEAD
+
     def get_spy_reports(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'tab': 20,
