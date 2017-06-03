@@ -155,4 +155,5 @@ Missions = {'Attack': 1,
             'RecycleDebrisField': 8,
             'Destroy': 9,
             'Expedition': 15,
-            'DeployToMoon': 4}
+            'DeployToMoon': 4,
+            'DeployToPlanet': 4}
