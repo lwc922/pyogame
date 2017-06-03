@@ -495,6 +495,16 @@ class OGame(object):
             # debris type: 2
             # moon type: 3
             payload.update({'type': 2})  # Send to debris field
+        if mission == constants.Missions['DeployToMoon']:
+            # planet type: 1
+            # debris type: 2
+            # moon type: 3
+            payload.update({'type': 3})  # Send to The moon
+        if mission == constants.Missions['DeployToPlanet']:
+            # planet type: 1
+            # debris type: 2
+            # moon type: 3
+            payload.update({'type': 1})  # Send to Planet
         res = self.session.post(self.get_url('fleet3'), data=payload).content
 
         payload = {}
