@@ -124,7 +124,7 @@ class OGame(object):
         self.password = password
         self.universe_speed = 1
         self.server_url = ''
-        self.server_tz = 'GMT+1'
+        self.server_tz = 'GMT+0'
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
@@ -860,3 +860,32 @@ class OGame(object):
                 token = re.findall(regex_string, d)
 
         return token
+
+    def check_new_messages(self, html):
+        total_messages = 0
+        soup = BeautifulSoup(html, 'lxml')
+        messages = soup.find('span', {'class': 'totalChatMessages'})
+        if messages is not None:
+            total_messages = int(messages.attrs['data-new-messages'])
+
+        return total_messages
+
+    def get_new_messages(self):
+        msg_list = []
+        html = self.session.get(self.get_url('chat')).content
+        soup = BeautifulSoup(html, 'lxml')
+        new_chats = soup.find('ul', {'id': 'chatMsgList'}).findAll('li', {'class': 'msg_new'})
+        if new_chats is None:
+            return None
+        for chat in new_chats:
+            message = ''
+            player = ''
+            try:
+                message = chat.find('span', {'class': 'msg_content'}).contents[0]
+                player = chat.find('span', {'class': 'msg_title'}).contents[2]
+            except UnicodeEncodeError:
+                print('Error getting messages')
+            msg = {'message': message.encode('utf-8'), 'player': player.encode('utf-8')}
+            msg_list.append(msg)
+
+        return msg_list
