@@ -6,6 +6,7 @@ import time
 import arrow
 import requests, requests.utils
 import pickle
+import random
 
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
@@ -146,6 +147,7 @@ class OGame(object):
                    'uni': self.server_url,
                    'login': self.username,
                    'pass': self.password}
+        time.sleep(random.uniform(1, 5))
         res = self.session.post(self.get_url('login'), data=payload).content
         soup = BeautifulSoup(res, 'lxml')
         session_found = soup.find('meta', {'name': 'ogame-session'})
@@ -371,7 +373,8 @@ class OGame(object):
         soup = BeautifulSoup(res, 'lxml')
         planets = soup.findAll('div', {'class': 'smallplanet'})
         for planet in planets:
-            name = planet.find('span', {'class': 'planet-name'}).string
+            title = planet.find('a', {'class': 'planetlink'}).get('title')
+            name = re.search(r'<b>(.+) \[(\d+):(\d+):(\d+)\]</b>', title).groups()[0]
             if name == planet_name:
                 planet_id = planet['id'].replace('planet-', '')
                 return planet_id
