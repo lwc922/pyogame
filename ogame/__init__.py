@@ -8,6 +8,7 @@ import arrow
 import requests
 import json
 import pickle
+import random
 
 
 from ogame import constants
@@ -156,6 +157,7 @@ class OGame(object):
                    'uni': self.server_url,
                    'login': self.username,
                    'pass': self.password}
+        time.sleep(random.uniform(1, 5))
         res = self.session.post(self.get_url('login'), data=payload).content
         soup = BeautifulSoup(res, 'lxml')
         session_found = soup.find('meta', {'name': 'ogame-session'})
