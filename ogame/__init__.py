@@ -898,3 +898,19 @@ class OGame(object):
             return True
         else:
             return False
+
+    def can_build_station(self, planet_id, building, building_type):
+        html = self.session.get(self.get_url(building_type, {'cp': planet_id})).content
+        soup = BeautifulSoup(html, 'lxml')
+        is_free = soup.find('div', {'class': 'station{}'.format(building)}).find('a', {'class': 'fastBuild'})
+        if is_free is not None:
+            return True
+        else:
+            return False
+
+    def alliance_apply(self, alliance_id, message):
+        url = self.get_url('allianceWriteApplication', {'action': 19})
+        payload = {'text': message,
+                   'appliedAllyId': alliance_id}
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        res = self.session.post(url, headers=headers, data=payload).content
