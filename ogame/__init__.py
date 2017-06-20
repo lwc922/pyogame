@@ -12,11 +12,6 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
 from bs4 import BeautifulSoup
 from dateutil import tz
 
-proxies = {
-    'http': 'socks5://127.0.0.1:9051',
-    'https': 'socks5://127.0.0.1:9051'
-}
-
 
 def parse_int(text):
     try:
@@ -117,7 +112,7 @@ def get_code(name):
 @for_all_methods(sandbox_decorator)
 class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
-                 sandbox=False, sandbox_obj=None, proxies=False):
+                 sandbox=False, sandbox_obj=None):
         self.session = requests.session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
@@ -133,8 +128,6 @@ class OGame(object):
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
-        if proxies:
-            self.session.proxies = proxies
 
     def login(self):
         """Get the ogame session token."""
