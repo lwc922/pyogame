@@ -18,7 +18,7 @@ Buildings = {'MetalMine': 1,
              'Fusiecentrale': 12,
              'Metaalopslag': 22,
              'Kristalopslag': 23,
-             'Deuteriumtank': 24
+             'Deuteriumtank': 24,
 
              'metal_mine': 1,
              'deuterium_synthesizer': 3,
