@@ -18,7 +18,18 @@ Buildings = {'MetalMine': 1,
              'Fusiecentrale': 12,
              'Metaalopslag': 22,
              'Kristalopslag': 23,
-             'Deuteriumtank': 24}
+             'Deuteriumtank': 24
+
+             'metal_mine': 1,
+             'deuterium_synthesizer': 3,
+             'solar_plant': 4,
+             'solar_satellite': 212,
+             'deuterium_tank': 24,
+             'crystal_mine': 2,
+             'fusion_reactor': 12,
+             'metal_storage': 22,
+             'crystal_storage': 23
+             }
 
 
 Facilities = {'AllianceDepot': 34,
