@@ -17,6 +17,11 @@ proxies = {
     'https': 'socks5://127.0.0.1:9050'
 }
 
+def get_ip():
+    url = 'http://ifconfig.me/ip'
+    response = requests.get(url, proxies=proxies)
+    return 'tor ip: {}'.format(response.text.strip())
+
 
 def parse_int(text):
     try:
