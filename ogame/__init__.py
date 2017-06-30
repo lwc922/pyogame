@@ -903,7 +903,11 @@ class OGame(object):
         return msg_list
 
     def can_build(self, planet_id, building, building_type):
-        html = self.session.get(self.get_url(building_type, {'cp': planet_id})).content
+        building_url = building_type
+        if building_type == 'supply':
+            resources_url = 'resources'
+            
+        html = self.session.get(self.get_url(resources_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
         if is_free is not None:
