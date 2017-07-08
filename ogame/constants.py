@@ -51,19 +51,8 @@ Defense = {'RocketLauncher': 401,
            'SmallShieldDome': 407,
            'LargeShieldDome': 408,
            'AntiBallisticMissiles': 502,
-           'InterplanetaryMissiles': 503,
-
-           # NL
-           'Raketlanceerder': 401,
-           'Kleinelaser': 402,
-           'Grotelaser': 403,
-           'Gausskannon': 404,
-           'Ionkannon': 405,
-           'Plasmakannon': 406,
-           'Kleineplanetaireschildkoepel': 407,
-           'GroteplanetaireschildkoepelLargeShieldDome': 408,
-           'Antiballistischeraketten': 502,
-           'Interplanetaireraketten': 503}
+           'InterplanetaryMissiles': 503
+          }
 
 
 Ships = {'SmallCargo': 202,
@@ -79,23 +68,8 @@ Ships = {'SmallCargo': 202,
          'SolarSatellite': 212,
          'Destroyer': 213,
          'Deathstar': 214,
-         'Battlecruiser': 215,
-
-         # NL
-         'Kleinvrachtschip': 202,
-         'Grootvrachtschip': 203,
-         'Lichtgevechtsschip': 204,
-         'Zwaargevechtsschip': 205,
-         'Kruiser': 206,
-         'Slagschip': 207,
-         'Kolonisatiesschip': 208,
-         'Recycler': 209,
-         'Spionagesonde': 210,
-         'Bommenwerper': 211,
-         'Zonne-energiesatelliet': 212,
-         'Vernietiger': 213,
-         'Sterdesdoods': 214,
-         'Interceptor': 215}
+         'Battlecruiser': 215
+         }
 
 
 Research = {'EspionageTechnology': 106,
@@ -114,24 +88,24 @@ Research = {'EspionageTechnology': 106,
             'IntergalacticResearchNetwork': 123,
             'Astrophysics': 124,
             'GravitonTechnology': 199,
-
-            # NL
-            'Spionagetechniek': 106,
-            'Computertechniek': 108,
-            'Wapentechniek': 109,
-            'Schildtechniek': 110,
-            'Pantsertechniek': 111,
-            'Energietechniek': 113,
-            'Hyperruimtetechniek': 114,
-            'Verbrandingsmotor': 115,
-            'Impulsmotor': 117,
-            'Hyperruimtemotor': 118,
-            'Lasertechniek': 120,
-            'Iontechniek': 121,
-            'Plasmatechniek': 122,
-            'IntergalactischOnderzoeksnetwerk': 123,
-            'Astrofysica': 124,
-            'Gravitontechniek': 199}
+            
+            'energy_technology': 113,
+            'laser_technology': 120,
+            'ion_technology': 121,
+            'hyperspace_technology': 114,
+            'plasma_technology': 122,
+            'combustion_drive': 115,
+            'impulse_drive': 117,
+            'hyperspace_drive': 118,
+            'espionage_technology': 106,
+            'computer_technology': 108,
+            'astrophysics': 124,
+            'intergalactic_research_network': 123,
+            'graviton_technology': 199,
+            'weapons_technology': 109,
+            'shielding_technology': 110,
+            'armour_technology': 111
+            }
 
 
 Speed = {'10%': 1,
