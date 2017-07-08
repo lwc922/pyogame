@@ -10,16 +10,6 @@ Buildings = {'MetalMine': 1,
              'UndergroundCrystalDen': 26,
              'SeabedDeuteriumDen': 27,
 
-             # NL
-             'Metaalmijn': 1,
-             'Kristalmijn': 2,
-             'Deuteriumfabriek': 3,
-             'Zonne-energiecentrale': 4,
-             'Fusiecentrale': 12,
-             'Metaalopslag': 22,
-             'Kristalopslag': 23,
-             'Deuteriumtank': 24,
-
              'metal_mine': 1,
              'deuterium_synthesizer': 3,
              'solar_plant': 4,
@@ -40,16 +30,16 @@ Facilities = {'AllianceDepot': 34,
               'NaniteFactory': 15,
               'Terraformer': 33,
               'SpaceDock': 36,
-
-              # NL
-              'Alliantiehanger': 34,
-              'Robotfabriek': 14,
-              'Werf': 21,
-              'Onderzoekslab': 31,
-              'Raketsilo': 44,
-              'Nanorobotfabriek': 15,
-              'Terravormer': 33,
-              'Ruimtewerf': 36}
+              
+              'alliance_depot': 34,
+              'robotics_factory': 14,
+              'shipyard': 21,
+              'research_lab': 31,
+              'missile_silo': 44,
+              'nanite_factory': 15,
+              'terraformer': 33,
+              'space_dock': 36
+              }
 
 
 Defense = {'RocketLauncher': 401,
