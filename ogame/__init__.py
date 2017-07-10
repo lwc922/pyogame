@@ -915,8 +915,8 @@ class OGame(object):
         else:
             return False
 
-    def can_build_station(self, planet_id, building, building_type):
-        html = self.session.get(self.get_url(building_type, {'cp': planet_id})).content
+    def can_build_research(self, building):
+        html = self.session.get(self.get_url('research')).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': 'station{}'.format(building)}).find('a', {'class': 'fastBuild'})
         if is_free is not None:
