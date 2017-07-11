@@ -198,12 +198,15 @@ class OGame(object):
         """Returns the planet resources stats."""
         resources = self.fetch_resources(planet_id)
         metal = resources['metal']['resources']['actual']
+        max_metal = resources['metal']['resources']['max']
         crystal = resources['crystal']['resources']['actual']
+        max_crystal = resources['crystal']['resources']['max']
         deuterium = resources['deuterium']['resources']['actual']
+        max_deuterium = resources['deuterium']['resources']['max']
         energy = resources['energy']['resources']['actual']
         darkmatter = resources['darkmatter']['resources']['actual']
         result = {'metal': metal, 'crystal': crystal, 'deuterium': deuterium,
-                  'energy': energy, 'darkmatter': darkmatter}
+                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal, 'max_deuterium': max_deuterium}
         return result
 
     def get_universe_speed(self, res=None):
