@@ -918,7 +918,7 @@ class OGame(object):
     def can_build_research(self, building):
         html = self.session.get(self.get_url('research')).content
         soup = BeautifulSoup(html, 'lxml')
-        is_free = soup.find('div', {'class': 'station{}'.format(building)}).find('a', {'class': 'fastBuild'})
+        is_free = soup.find('div', {'class': 'research{}'.format(building)}).find('a', {'class': 'fastBuild'})
         if is_free is not None:
             return True
         else:
