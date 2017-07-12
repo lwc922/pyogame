@@ -577,7 +577,7 @@ class OGame(object):
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
-            if mission_type not in [1, 2]:
+            if mission_type not in [1, 2, 9]:
                 continue
 
             attack = {}
@@ -598,6 +598,7 @@ class OGame(object):
 
             else:
                 attack.update({'origin': None})
+                attack.update({'is_hostile': True})
 
             dest_coords = event.find('td', {'class': 'destCoords'}).text.strip()
             coords = re.search(r'\[(\d+):(\d+):(\d+)\]', dest_coords)
