@@ -939,7 +939,7 @@ class OGame(object):
         res = self.session.get('http://ifconfig.me/ip')
         return 'ip session: {}'.format(res.text.strip())
 
-    def delete_planet(planet_id):
+    def delete_planet(self, planet_id):
         html = self.session.get(self.get_url('planetlayer')).content
         soup = BeautifulSoup(html, 'lxml')
         form = soup.find('form', {'id': 'planetMaintenanceDelete'})
