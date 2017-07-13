@@ -946,7 +946,7 @@ class OGame(object):
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
-                  'token': token
+                  'token': token,
                   'password': self.password}        
         check_password = self.session.post(self.get_url('checkPassword'), data=payload).content
         return check_password
