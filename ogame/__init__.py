@@ -938,3 +938,19 @@ class OGame(object):
     def get_ip(self):
         res = self.session.get('http://ifconfig.me/ip')
         return 'ip session: {}'.format(res.text.strip())
+
+    def delete_planet(planet_id):
+        html = self.session.get(self.get_url('planetlayer')).content
+        soup = BeautifulSoup(html, 'lxml')
+        form = soup.find('form', {'id': 'planetMaintenanceDelete'})
+        abandon = form.find('input', {'name': 'abandon'}).get('value')
+        token = form.find('input', {'name': 'token'}).get('value')
+        token = 
+        payload = {'abandon': abandon,
+                  'token': token
+                  'password': self.password}        
+        check_password = self.session.post(self.get_url('checkPassword'), data=payload).content
+        return check_password
+        
+        
+        
