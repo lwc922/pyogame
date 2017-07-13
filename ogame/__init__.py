@@ -5,6 +5,7 @@ import re
 import time
 import arrow
 import requests
+import json
 
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
@@ -947,9 +948,13 @@ class OGame(object):
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
                   'token': token,
-                  'password': self.password}        
-        check_password = self.session.post(self.get_url('checkPassword'), data=payload).content
-        return check_password
+                  'password': self.password} 
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
+        jo = json.loads(check_password)
+        new_token = jo['newToken']
+        delete_payload = {'abandon': abandon,
+                         'token': new_token,
+                         'password': self.password}
         
-        
-        
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=payload).content   
