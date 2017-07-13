@@ -957,4 +957,4 @@ class OGame(object):
                          'token': new_token,
                          'password': self.password}
         
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=payload).content   
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
