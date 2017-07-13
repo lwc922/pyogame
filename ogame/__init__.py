@@ -945,7 +945,6 @@ class OGame(object):
         form = soup.find('form', {'id': 'planetMaintenanceDelete'})
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
-        token = 
         payload = {'abandon': abandon,
                   'token': token
                   'password': self.password}        
