@@ -643,7 +643,10 @@ class OGame(object):
 
             #todo Mn replace 제대로
             #attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
-            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
+            try :
+                attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
+            except ValueError as ve:
+                attack.update({'detailsFleet': "(?)"})
 
 
 
