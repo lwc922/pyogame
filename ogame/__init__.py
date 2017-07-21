@@ -4,9 +4,12 @@ import math
 import re
 import time
 import arrow
-import requests, requests.utils
+
+import requests
+import json
 import pickle
 import random
+
 
 from ogame import constants
 from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CREDENTIALS, CANT_PROCESS, BAD_BUILDING_ID, \
@@ -15,19 +18,23 @@ from bs4 import BeautifulSoup
 from dateutil import tz
 
 miniFleetToken = None
+proxies = {
+    'http': 'socks5://127.0.0.1:9050',
+    'https': 'socks5://127.0.0.1:9050'
+}
 
-
-def update_cookies(session_dict):
-    pickle.dump(session_dict, open("save.txt", "wb"))
-
-
-def set_mini_fleet_token(token):
-    global miniFleetToken  # Needed to modify global copy of globvar
-    miniFleetToken = token
+def get_ip():
+    url = 'http://ifconfig.me/ip'
+    response = requests.get(url, proxies=proxies)
+    return 'tor ip: {}'.format(response.text.strip())
 
 
 def parse_int(text):
-    return int(text.replace('.', '').strip())
+    try:
+        a = int(text.replace('.', '').strip())
+        return a
+    except ValueError:
+        return 0
 
 
 def for_all_methods(decorator):
@@ -121,10 +128,12 @@ def get_code(name):
 @for_all_methods(sandbox_decorator)
 class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
-                 sandbox=False, sandbox_obj=None):
+                 sandbox=False, sandbox_obj=None, use_proxy=False):
         self.session = requests.session()
         self.session.headers.update({
-                                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'})
+
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
+
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
@@ -134,10 +143,11 @@ class OGame(object):
         self.universe_speed = 1
         self.server_url = ''
         self.server_tz = 'GMT+1'
-
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
+        if use_proxy:
+            self.session.proxies.update(proxies)
 
     def login(self):
         """Get the ogame session token."""
@@ -153,9 +163,6 @@ class OGame(object):
         session_found = soup.find('meta', {'name': 'ogame-session'})
         if session_found:
             self.ogame_session = session_found.get('content')
-            # Save the session to a file
-            session_dict = self.session.cookies
-            update_cookies(session_dict)
         else:
             raise BAD_CREDENTIALS
 
@@ -200,12 +207,15 @@ class OGame(object):
         """Returns the planet resources stats."""
         resources = self.fetch_resources(planet_id)
         metal = resources['metal']['resources']['actual']
+        max_metal = resources['metal']['resources']['max']
         crystal = resources['crystal']['resources']['actual']
+        max_crystal = resources['crystal']['resources']['max']
         deuterium = resources['deuterium']['resources']['actual']
+        max_deuterium = resources['deuterium']['resources']['max']
         energy = resources['energy']['resources']['actual']
         darkmatter = resources['darkmatter']['resources']['actual']
         result = {'metal': metal, 'crystal': crystal, 'deuterium': deuterium,
-                  'energy': energy, 'darkmatter': darkmatter}
+                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal, 'max_deuterium': max_deuterium}
         return result
 
     def get_universe_speed(self, res=None):
@@ -232,7 +242,7 @@ class OGame(object):
         tmp = re.search(r'textContent\[7\]="([^"]+)"', html).group(1)
         soup = BeautifulSoup(tmp, 'lxml')
         tmp = soup.text
-        infos = re.search(r'([\d\\.]+) \(Lugar ([\d\.]+) de ([\d\.]+)\)', tmp)
+        infos = re.search(r'([\d\\.]+) \(Place ([\d\.]+) of ([\d\.]+)\)', tmp)
         res['points'] = parse_int(infos.group(1))
         res['rank'] = parse_int(infos.group(2))
         res['total'] = parse_int(infos.group(3))
@@ -510,6 +520,16 @@ class OGame(object):
             # debris type: 2
             # moon type: 3
             payload.update({'type': 2})  # Send to debris field
+        if mission == constants.Missions['DeployToMoon']:
+            # planet type: 1
+            # debris type: 2
+            # moon type: 3
+            payload.update({'type': 3})  # Send to The moon
+        if mission == constants.Missions['DeployToPlanet']:
+            # planet type: 1
+            # debris type: 2
+            # moon type: 3
+            payload.update({'type': 1})  # Send to Planet
         res = self.session.post(self.get_url('fleet3'), data=payload).content
 
         payload = {}
@@ -568,9 +588,16 @@ class OGame(object):
         events = soup.findAll('tr', {'class': 'allianceAttack'})
         events += eventsDup
         # unsupported operand type(s) for +=: 'filter' and 'ResultSet'
+
+
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
+
+            if mission_type not in [1, 2, 9]:
+                continue
+
+
             if mission_type not in [1, 2]:
                 if checkSpyAlso and mission_type not in [6]:
                     continue
@@ -578,6 +605,7 @@ class OGame(object):
                     continue
                 else:
                     None
+
 
             attack = {}
             attack.update({'mission_type': mission_type})
@@ -587,8 +615,17 @@ class OGame(object):
                 coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_origin)
                 galaxy, system, position = coords.groups()
                 attack.update({'origin': (int(galaxy), int(system), int(position))})
+
+                # CHECK IF IT IS HOSTILE
+                is_hostile = False
+                check_hostile = event.find('td', {'class': 'hostile'})
+                if check_hostile is not None:
+                    is_hostile = True
+                attack.update({'is_hostile': is_hostile})
+
             else:
                 attack.update({'origin': None})
+                attack.update({'is_hostile': True})
 
             dest_coords = event.find('td', {'class': 'destCoords'}).text.strip()
             coords = re.search(r'\[(\d+):(\d+):(\d+)\]', dest_coords)
@@ -603,9 +640,12 @@ class OGame(object):
             second = int(second)
             arrival_time = self.get_datetime_from_time(hour, minute, second)
             attack.update({'arrival_time': arrival_time})
-            # todo Mn replace 제대로
-            attack.update({'detailsFleet': int(
-                event.find('td', {'class': 'detailsFleet'}).text.replace(".", "").replace("Mn", "").strip())})
+
+            #todo Mn replace 제대로
+            #attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
+            attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
+
+
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
@@ -729,7 +769,6 @@ class OGame(object):
 
     def get_overview(self, planet_id):
         html = self.session.get(self.get_url('overview', {'cp': planet_id})).content
-        update_cookies(self.session.cookies)
         if not self.is_logged(html):
             raise NOT_LOGGED
         soup = BeautifulSoup(html, 'lxml')
@@ -800,6 +839,7 @@ class OGame(object):
         return obj
 
 
+
     def get_spy_reports(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         payload = {'tab': 20,
@@ -813,8 +853,8 @@ class OGame(object):
         payload = {'messageId': message_id, 'action': 103, 'ajax': 1}
         url = self.get_url('messages')
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-
         return res
+
 
     def send_spy(self, galaxy, system, position, ship_count):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -846,22 +886,161 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
+
     def get_flying_fleets(self):
         url = self.get_url('movement')
         res = self.session.get(url).content
         soup = BeautifulSoup(res, 'lxml')
-        fleets = soup.find('span', {
+        current_fleets = soup.find('span', {
             'class': 'current'})
-        if fleets is None:
-            return '0'
-        return fleets.contents[0]
+        max_fleets = soup.find('span', {
+            'class': 'all'})
+        if current_fleets is None:
+            text_fleets = soup.find('span', {'class': 'tooltip advice'}).contents[1]
+            current_fleets = int(text_fleets.split('/')[0])
+            max_fleets = int(text_fleets.split('/')[1])
+            available_fleets = max_fleets - current_fleets
+            fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets,
+                          'available_fleets': available_fleets}
+            return fleet_dict
+        current_fleets = int(current_fleets.contents[0])
+        max_fleets = int(max_fleets.contents[0])
+        available_fleets = max_fleets - current_fleets
+        fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets, 'available_fleets': available_fleets}
+        return fleet_dict
+
 
     def jumpgate_execute(self):
         res = self.session.get(self.get_url('jumpgate_execute')).content
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
+
+
+    def send_minifleet_spy(self, where, ship_count, token):
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        payload = {'mission': 6,
+                   'galaxy': where.get('galaxy'),
+                   'system': where.get('system'),
+                   'position': where.get('position'),
+                   'type': 1,
+                   'shipCount': ship_count,
+                   'token': token,
+                   'speed': 10
+                   }
+        res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
+        try:
+            json_response = json.loads(res)
+        except ValueError:
+            from send_message import send_message
+            send_message(
+                'No se pudo espiar a {}:{}:{}'.format(where.get('galaxy'), where.get('system'), where.get('position')))
+            return None
+        res_dict = json_response.get('response').get('success')
+        if res_dict:
+            return 'Sended spy probes'
+        return None
+
+    def get_minifleet_token(self, html):
+        token = None
+        moon_soup = BeautifulSoup(html, 'html.parser')
+        data = moon_soup.find_all('script', {'type': 'text/javascript'})
+        parameter = 'miniFleetToken'
+        for d in data:
+            d = d.text
+            if 'var miniFleetToken=' in d:
+                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
+                token = re.findall(regex_string, d)
+
+        return token
+
+    def check_new_messages(self, html):
+        total_messages = 0
+        soup = BeautifulSoup(html, 'lxml')
+        messages = soup.find('span', {'class': 'totalChatMessages'})
+        if messages is not None:
+            total_messages = int(messages.attrs['data-new-messages'])
+
+        return total_messages
+
+    def get_new_messages(self):
+        msg_list = []
+        html = self.session.get(self.get_url('chat')).content
+        soup = BeautifulSoup(html, 'lxml')
+        new_chats = soup.find('ul', {'id': 'chatMsgList'}).findAll('li', {'class': 'msg_new'})
+        if new_chats is None:
+            return None
+        for chat in new_chats:
+            message = ''
+            player = ''
+            try:
+                message = chat.find('span', {'class': 'msg_content'}).contents[0]
+                player = chat.find('span', {'class': 'msg_title'}).contents[2]
+            except UnicodeEncodeError:
+                print('Error getting messages')
+            msg = {'message': message.encode('utf-8'), 'player': player.encode('utf-8')}
+            msg_list.append(msg)
+
+        return msg_list
+
+    def can_build(self, planet_id, building, building_type):
+        building_url = building_type
+        if building_type == 'supply':
+            building_url = 'resources'
+            
+        html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
+        soup = BeautifulSoup(html, 'lxml')
+        is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
+        if is_free is not None:
+            return True
+        else:
+            return False
+
+    def can_build_research(self, building):
+        html = self.session.get(self.get_url('research')).content
+        soup = BeautifulSoup(html, 'lxml')
+        is_free = soup.find('div', {'class': 'research{}'.format(building)}).find('a', {'class': 'fastBuild'})
+        if is_free is not None:
+            return True
+        else:
+            return False
+
+    def alliance_apply(self, alliance_id, message):
+        url = self.get_url('allianceWriteApplication', {'action': 19})
+        payload = {'text': message,
+                   'appliedAllyId': alliance_id}
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        res = self.session.post(url, headers=headers, data=payload).content
+
+    def get_ip(self):
+        res = self.session.get('http://ifconfig.me/ip')
+        return 'ip session: {}'.format(res.text.strip())
+
+    def delete_planet(self, planet_id):
+        html = self.session.get(self.get_url('planetlayer')).content
+        soup = BeautifulSoup(html, 'lxml')
+        form = soup.find('form', {'id': 'planetMaintenanceDelete'})
+        abandon = form.find('input', {'name': 'abandon'}).get('value')
+        token = form.find('input', {'name': 'token'}).get('value')
+        payload = {'abandon': abandon,
+                  'token': token,
+                  'password': self.password} 
+        headers = {'X-Requested-With': 'XMLHttpRequest'}
+        check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
+        jo = json.loads(check_password)
+        new_token = jo['newToken']
+        delete_payload = {'abandon': abandon,
+                         'token': new_token,
+                         'password': self.password}
+        
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
+
+
+
+
+ 
     def Consommation(self, type, batiment, lvl):
+
         """ Retourne la consommation du batiment du level lvl + 1 """
         energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
         constants.Formules[type][batiment]['consommation'][1] ** lvl)
@@ -880,6 +1059,7 @@ class OGame(object):
                                            constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
         return cost
 
+
     def getProduction(self, type, batiment, lvl):
         """ Retourne le cout d'un batiment lvl + 1 """
         production = 0
@@ -895,6 +1075,7 @@ class OGame(object):
         capacity = -1
         capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
         return capacity
+
 
     def galaxy_infos(self, galaxy, system):
         html = self.galaxy_content(galaxy, system)['galaxy']
@@ -933,4 +1114,3 @@ class OGame(object):
                 planet_infos['player']['rank'] = player_rank
                 res.append(planet_infos)
         return res
-

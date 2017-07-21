@@ -12,23 +12,18 @@ Buildings = {'MetalMine': 1,
              'UndergroundCrystalDen': 26,
              'SeabedDeuteriumDen': 27,
 
-             # NL
-             'Metaalmijn': 1,
-             'Kristalmijn': 2,
-             'Deuteriumfabriek': 3,
-             'Zonne-energiecentrale': 4,
-             'Fusiecentrale': 12,
-             'Metaalopslag': 22,
-             'Kristalopslag': 23,
-             'Deuteriumtank': 24,
 
-             'Minedemétal': 1,
-             'Minedecristal': 2,
-             'Synthétiseurdedeutérium': 3,
-             'Centraleélectriquesolaire': 4,
-             'Hangardemétal': 22,
-             'Hangardecristal': 23,
-             'Réservoirdedeutérium': 24}
+             'metal_mine': 1,
+             'deuterium_synthesizer': 3,
+             'solar_plant': 4,
+             'solar_satellite': 212,
+             'deuterium_tank': 24,
+             'crystal_mine': 2,
+             'fusion_reactor': 12,
+             'metal_storage': 22,
+             'crystal_storage': 23
+             }
+
 
 Facilities = {'AllianceDepot': 34,
               'RoboticsFactory': 14,
@@ -39,18 +34,19 @@ Facilities = {'AllianceDepot': 34,
               'Terraformer': 33,
               'SpaceDock': 36,
 
-              # NL
-              'Alliantiehanger': 34,
-              'Robotfabriek': 14,
-              'Werf': 21,
-              'Onderzoekslab': 31,
-              'Raketsilo': 44,
-              'Nanorobotfabriek': 15,
-              'Terravormer': 33,
-              'Ruimtewerf': 36,
 
-              # FR
-              'Usinederobots': 14}
+              
+              'alliance_depot': 34,
+              'robotics_factory': 14,
+              'shipyard': 21,
+              'research_lab': 31,
+              'missile_silo': 44,
+              'nanite_factory': 15,
+              'terraformer': 33,
+              'space_dock': 36
+              }
+
+
 
 Defense = {'RocketLauncher': 401,
            'LightLaser': 402,
@@ -61,19 +57,8 @@ Defense = {'RocketLauncher': 401,
            'SmallShieldDome': 407,
            'LargeShieldDome': 408,
            'AntiBallisticMissiles': 502,
-           'InterplanetaryMissiles': 503,
-
-           # NL
-           'Raketlanceerder': 401,
-           'Kleinelaser': 402,
-           'Grotelaser': 403,
-           'Gausskannon': 404,
-           'Ionkannon': 405,
-           'Plasmakannon': 406,
-           'Kleineplanetaireschildkoepel': 407,
-           'GroteplanetaireschildkoepelLargeShieldDome': 408,
-           'Antiballistischeraketten': 502,
-           'Interplanetaireraketten': 503}
+           'InterplanetaryMissiles': 503
+          }
 
 Ships = {'SmallCargo': 202,
          'LargeCargo': 203,
@@ -88,26 +73,10 @@ Ships = {'SmallCargo': 202,
          'SolarSatellite': 212,
          'Destroyer': 213,
          'Deathstar': 214,
-         'Battlecruiser': 215,
 
-         # NL
-         'Kleinvrachtschip': 202,
-         'Grootvrachtschip': 203,
-         'Lichtgevechtsschip': 204,
-         'Zwaargevechtsschip': 205,
-         'Kruiser': 206,
-         'Slagschip': 207,
-         'Kolonisatiesschip': 208,
-         'Recycler': 209,
-         'Spionagesonde': 210,
-         'Bommenwerper': 211,
-         'Zonne-energiesatelliet': 212,
-         'Vernietiger': 213,
-         'Sterdesdoods': 214,
-         'Interceptor': 215,
+         'Battlecruiser': 215
+         }
 
-         # FR
-         'Grandtransporteur': 203}
 
 Research = {'EspionageTechnology': 106,
             'ComputerTechnology': 108,
@@ -126,28 +95,24 @@ Research = {'EspionageTechnology': 106,
             'Astrophysics': 124,
             'GravitonTechnology': 199,
 
-            # NL
-            'Spionagetechniek': 106,
-            'Computertechniek': 108,
-            'Wapentechniek': 109,
-            'Schildtechniek': 110,
-            'Pantsertechniek': 111,
-            'Energietechniek': 113,
-            'Hyperruimtetechniek': 114,
-            'Verbrandingsmotor': 115,
-            'Impulsmotor': 117,
-            'Hyperruimtemotor': 118,
-            'Lasertechniek': 120,
-            'Iontechniek': 121,
-            'Plasmatechniek': 122,
-            'IntergalactischOnderzoeksnetwerk': 123,
-            'Astrofysica': 124,
-            'Gravitontechniek': 199,
-
-            # FR
-            'TechnologieOrdinateur': 108,
-            'Astrophysique': 124,
-            'TechnologieEspionnage': 106}
+            
+            'energy_technology': 113,
+            'laser_technology': 120,
+            'ion_technology': 121,
+            'hyperspace_technology': 114,
+            'plasma_technology': 122,
+            'combustion_drive': 115,
+            'impulse_drive': 117,
+            'hyperspace_drive': 118,
+            'espionage_technology': 106,
+            'computer_technology': 108,
+            'astrophysics': 124,
+            'intergalactic_research_network': 123,
+            'graviton_technology': 199,
+            'weapons_technology': 109,
+            'shielding_technology': 110,
+            'armour_technology': 111
+            }
 
 Speed = {'10%': 1,
          '20%': 2,
@@ -170,6 +135,10 @@ Missions = {'Attack': 1,
             'Colonize': 7,
             'RecycleDebrisField': 8,
             'Destroy': 9,
+
+            'Expedition': 15,
+            'DeployToMoon': 4,
+            'DeployToPlanet': 4}
             'Expedition': 15}
 
 Formules = {
