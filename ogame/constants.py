@@ -138,8 +138,8 @@ Missions = {'Attack': 1,
 
             'Expedition': 15,
             'DeployToMoon': 4,
-            'DeployToPlanet': 4}
-            'Expedition': 15}
+            'DeployToPlanet': 4
+            }
 
 Formules = {
     'Buildings': {
