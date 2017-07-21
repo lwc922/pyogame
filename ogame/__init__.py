@@ -392,7 +392,9 @@ class OGame(object):
 
     def build_defense(self, planet_id, defense_id, nbr):
         """Build a defense unit."""
+        print("builddef")
         if defense_id not in constants.Defense.values():
+            print("baddef")
             raise BAD_DEFENSE_ID
 
         url = self.get_url('defense', {'cp': planet_id})
@@ -408,6 +410,7 @@ class OGame(object):
                    'modus': 1,
                    'token': token,
                    'type': defense_id}
+        print("def post")
         self.session.post(url, data=payload)
 
     def build_ships(self, planet_id, ship_id, nbr):
