@@ -242,7 +242,7 @@ class OGame(object):
         tmp = re.search(r'textContent\[7\]="([^"]+)"', str(html)).group(1)
         soup = BeautifulSoup(tmp, 'lxml')
         tmp = soup.text
-        infos = re.search(r'([\d\\.]+) \(Place ([\d\.]+) of ([\d\.]+)\)', tmp)
+        infos = re.search(r'([\d\\.]+) \(\S+ ([\d\.]+) \S+ ([\d\.]+)\)', tmp)
         res['points'] = parse_int(infos.group(1))
         res['rank'] = parse_int(infos.group(2))
         res['total'] = parse_int(infos.group(3))
