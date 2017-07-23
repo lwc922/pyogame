@@ -237,17 +237,20 @@ class OGame(object):
         if not self.is_logged(html):
             raise NOT_LOGGED
         res = {}
-        res['player_id'] = int(re.search(r'playerId="(\w+)"', html).group(1))
-        res['player_name'] = re.search(r'playerName="(\w+)"', html).group(1)
-        tmp = re.search(r'textContent\[7\]="([^"]+)"', html).group(1)
+        res['player_id'] = int(re.search(r'playerId="(\w+)"', str(html)).group(1))
+        res['player_name'] = re.search(r'playerName="(\w+)"', str(html)).group(1)
+        tmp = re.search(r'textContent\[7\]="([^"]+)"', str(html)).group(1)
         soup = BeautifulSoup(tmp, 'lxml')
         tmp = soup.text
         infos = re.search(r'([\d\\.]+) \(Place ([\d\.]+) of ([\d\.]+)\)', tmp)
         res['points'] = parse_int(infos.group(1))
         res['rank'] = parse_int(infos.group(2))
         res['total'] = parse_int(infos.group(3))
-        res['honour_points'] = parse_int(re.search(r'textContent\[9\]="([^"]+)"', html).group(1))
+        res['honour_points'] = parse_int(re.search(r'textContent\[9\]="([^"]+)"', str(html)).group(1))
         res['planet_ids'] = self.get_planet_ids(html)
+        res['current_planets'] = re.search(r'(\d+)/(\d+)',BeautifulSoup(html, 'lxml').find('p','textCenter').text).group(1)
+        res['max_planets'] = re.search(r'(\d+)/(\d+)',
+                                           BeautifulSoup(html, 'lxml').find('p', 'textCenter').text).group(2)
         return res
 
     def get_resources_buildings(self, planet_id):
