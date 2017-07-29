@@ -18,6 +18,7 @@ proxies = {
     'https': 'socks5://127.0.0.1:9050'
 }
 
+
 def get_ip():
     url = 'http://ifconfig.me/ip'
     response = requests.get(url, proxies=proxies)
@@ -207,7 +208,8 @@ class OGame(object):
         energy = resources['energy']['resources']['actual']
         darkmatter = resources['darkmatter']['resources']['actual']
         result = {'metal': metal, 'crystal': crystal, 'deuterium': deuterium,
-                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal, 'max_deuterium': max_deuterium}
+                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal,
+                  'max_deuterium': max_deuterium}
         return result
 
     def get_universe_speed(self, res=None):
@@ -795,9 +797,21 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         try:
             obj = json.loads(res)
+            galaxy_view = obj['galaxy']
         except ValueError:
             raise NOT_LOGGED
-        return obj
+        return galaxy_view
+
+    def find_empty_slots(self, html):
+        soup = BeautifulSoup(html, 'lxml')
+        empty_rows = soup.find_all('tr', {'class': 'empty_filter'})
+        empty_positions = []
+        if empty_rows is None:
+            return empty_positions
+        for empty_row in empty_rows:
+            empty_positions.append(empty_row.find('td', {'position'}).text)
+
+        return empty_positions
 
     def get_spy_reports(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -911,7 +925,7 @@ class OGame(object):
         building_url = building_type
         if building_type == 'supply':
             building_url = 'resources'
-            
+
         html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
@@ -947,14 +961,14 @@ class OGame(object):
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
-                  'token': token,
-                  'password': self.password} 
+                   'token': token,
+                   'password': self.password}
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
         jo = json.loads(check_password)
         new_token = jo['newToken']
         delete_payload = {'abandon': abandon,
-                         'token': new_token,
-                         'password': self.password}
-        
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
+                          'token': new_token,
+                          'password': self.password}
+
+        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content
