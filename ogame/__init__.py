@@ -580,7 +580,7 @@ class OGame(object):
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
-            if mission_type not in [1, 2, 9]:
+            if mission_type not in [1, 2, 9, 6]:
                 continue
 
             attack = {}
@@ -598,7 +598,18 @@ class OGame(object):
                 if check_hostile is not None:
                     is_hostile = True
                 attack.update({'is_hostile': is_hostile})
-
+            if mission_type == 6:
+                total_fleet = event.find('td', {'class': 'icon_movement'})
+                if total_fleet is None:
+                    from send_message import send_message
+                    send_message('Nos espian y no podemos obtener la flota')
+                else:
+                    total_fleet = total_fleet.find('span')['title']
+                    soup_fleet = BeautifulSoup(total_fleet, 'lxml')
+                    total_tr = len(soup_fleet.findAll('tr'))
+                    if total_tr > 2:
+                        attack.update({'origin': None})
+                        attack.update({'is_hostile': True})
             else:
                 attack.update({'origin': None})
                 attack.update({'is_hostile': True})
