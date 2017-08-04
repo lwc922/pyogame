@@ -598,7 +598,7 @@ class OGame(object):
                 if check_hostile is not None:
                     is_hostile = True
                 attack.update({'is_hostile': is_hostile})
-            if mission_type == 6:
+            elif mission_type == 6:
                 total_fleet = event.find('td', {'class': 'icon_movement'})
                 if total_fleet is None:
                     from send_message import send_message
@@ -610,6 +610,12 @@ class OGame(object):
                     if total_tr > 2:
                         attack.update({'origin': None})
                         attack.update({'is_hostile': True})
+                    else:
+                        attack.update({'origin': None})
+                        attack.update({'is_hostile': False})
+            elif mission_type == 9:
+                attack.update({'origin': None})
+                attack.update({'is_hostile': True})
             else:
                 attack.update({'origin': None})
                 attack.update({'is_hostile': True})
