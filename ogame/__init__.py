@@ -23,6 +23,7 @@ proxies = {
     'https': 'socks5://127.0.0.1:9050'
 }
 
+
 def get_ip():
     url = 'http://ifconfig.me/ip'
     response = requests.get(url, proxies=proxies)
@@ -215,7 +216,8 @@ class OGame(object):
         energy = resources['energy']['resources']['actual']
         darkmatter = resources['darkmatter']['resources']['actual']
         result = {'metal': metal, 'crystal': crystal, 'deuterium': deuterium,
-                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal, 'max_deuterium': max_deuterium}
+                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal,
+                  'max_deuterium': max_deuterium}
         return result
 
     def get_universe_speed(self, res=None):
@@ -600,7 +602,8 @@ class OGame(object):
         for event in events:
             mission_type = int(event['data-mission-type'])
 
-            if mission_type not in [1, 2, 9]:
+            if mission_type not in [1, 2, 9, 6]:
+
                 continue
 
 
@@ -628,7 +631,24 @@ class OGame(object):
                 if check_hostile is not None:
                     is_hostile = True
                 attack.update({'is_hostile': is_hostile})
-
+            elif mission_type == 6:
+                total_fleet = event.find('td', {'class': 'icon_movement'})
+                if total_fleet is None:
+                    from send_message import send_message
+                    send_message('Nos espian y no podemos obtener la flota')
+                else:
+                    total_fleet = total_fleet.find('span')['title']
+                    soup_fleet = BeautifulSoup(total_fleet, 'lxml')
+                    total_tr = len(soup_fleet.findAll('tr'))
+                    if total_tr > 2:
+                        attack.update({'origin': None})
+                        attack.update({'is_hostile': True})
+                    else:
+                        attack.update({'origin': None})
+                        attack.update({'is_hostile': False})
+            elif mission_type == 9:
+                attack.update({'origin': None})
+                attack.update({'is_hostile': True})
             else:
                 attack.update({'origin': None})
                 attack.update({'is_hostile': True})
@@ -843,9 +863,21 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         try:
             obj = json.loads(res)
+            galaxy_view = obj['galaxy']
         except ValueError:
             raise NOT_LOGGED
-        return obj
+        return galaxy_view
+
+    def find_empty_slots(self, html):
+        soup = BeautifulSoup(html, 'lxml')
+        empty_rows = soup.find_all('tr', {'class': 'empty_filter'})
+        empty_positions = []
+        if empty_rows is None:
+            return empty_positions
+        for empty_row in empty_rows:
+            empty_positions.append(empty_row.find('td', {'position'}).text)
+
+        return empty_positions
 
 
 
@@ -996,7 +1028,7 @@ class OGame(object):
         building_url = building_type
         if building_type == 'supply':
             building_url = 'resources'
-            
+
         html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
         soup = BeautifulSoup(html, 'lxml')
         is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
@@ -1032,13 +1064,14 @@ class OGame(object):
         abandon = form.find('input', {'name': 'abandon'}).get('value')
         token = form.find('input', {'name': 'token'}).get('value')
         payload = {'abandon': abandon,
-                  'token': token,
-                  'password': self.password} 
+                   'token': token,
+                   'password': self.password}
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
         jo = json.loads(check_password)
         new_token = jo['newToken']
         delete_payload = {'abandon': abandon,
+
                          'token': new_token,
                          'password': self.password}
         
