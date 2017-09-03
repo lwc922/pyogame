@@ -653,6 +653,8 @@ class OGame(object):
                 attack.update({'origin': None})
                 attack.update({'is_hostile': True})
 
+            dest_moon = event.find('td', {'class': 'destFleet'}).find('figure',
+                                                                      {'class': 'planetIcon moon'}) is not None
             dest_coords = event.find('td', {'class': 'destCoords'}).text.strip()
             coords = re.search(r'\[(\d+):(\d+):(\d+)\]', dest_coords)
             galaxy, system, position = coords.groups()
