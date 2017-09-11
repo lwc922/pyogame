@@ -4,11 +4,8 @@ import math
 import re
 import time
 import arrow
-
-import requests
-import json
+import requests, requests.utils
 import pickle
-import random
 
 
 from ogame import constants
@@ -16,26 +13,20 @@ from ogame.errors import BAD_UNIVERSE_NAME, BAD_DEFENSE_ID, NOT_LOGGED, BAD_CRED
     BAD_SHIP_ID, BAD_RESEARCH_ID
 from bs4 import BeautifulSoup
 from dateutil import tz
-
 miniFleetToken = None
-proxies = {
-    'http': 'socks5://127.0.0.1:9050',
-    'https': 'socks5://127.0.0.1:9050'
-}
 
 
-def get_ip():
-    url = 'http://ifconfig.me/ip'
-    response = requests.get(url, proxies=proxies)
-    return 'tor ip: {}'.format(response.text.strip())
+def update_cookies(session_dict):
+    pickle.dump(session_dict, open("save.txt", "wb"))
+
+
+def set_mini_fleet_token(token):
+    global miniFleetToken  # Needed to modify global copy of globvar
+    miniFleetToken = token
 
 
 def parse_int(text):
-    try:
-        a = int(text.replace('.', '').strip())
-        return a
-    except ValueError:
-        return 0
+    return int(text.replace('.', '').strip())
 
 
 def for_all_methods(decorator):
@@ -125,16 +116,17 @@ def get_code(name):
     print('Couldn\'t find code for %s' % name)
     return None
 
+def remove_html_tags(data):
+    p = re.compile(r'<.*?>')
+    return p.sub('\n',data)
+
 
 @for_all_methods(sandbox_decorator)
 class OGame(object):
     def __init__(self, universe, username, password, domain='en.ogame.gameforge.com', auto_bootstrap=True,
-                 sandbox=False, sandbox_obj=None, use_proxy=False):
+                 sandbox=False, sandbox_obj=None):
         self.session = requests.session()
-        self.session.headers.update({
-
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'})
-
+        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'})
         self.sandbox = sandbox
         self.sandbox_obj = sandbox_obj if sandbox_obj is not None else {}
         self.universe = universe
@@ -143,12 +135,11 @@ class OGame(object):
         self.password = password
         self.universe_speed = 1
         self.server_url = ''
-        self.server_tz = 'GMT+2'
+        self.server_tz = 'GMT+1'
+
         if auto_bootstrap:
             self.login()
             self.universe_speed = self.get_universe_speed()
-        if use_proxy:
-            self.session.proxies.update(proxies)
 
     def login(self):
         """Get the ogame session token."""
@@ -158,12 +149,14 @@ class OGame(object):
                    'uni': self.server_url,
                    'login': self.username,
                    'pass': self.password}
-        time.sleep(random.uniform(1, 5))
         res = self.session.post(self.get_url('login'), data=payload).content
         soup = BeautifulSoup(res, 'lxml')
         session_found = soup.find('meta', {'name': 'ogame-session'})
         if session_found:
             self.ogame_session = session_found.get('content')
+            # Save the session to a file
+            session_dict = self.session.cookies
+            update_cookies(session_dict)
         else:
             raise BAD_CREDENTIALS
 
@@ -208,16 +201,12 @@ class OGame(object):
         """Returns the planet resources stats."""
         resources = self.fetch_resources(planet_id)
         metal = resources['metal']['resources']['actual']
-        max_metal = resources['metal']['resources']['max']
         crystal = resources['crystal']['resources']['actual']
-        max_crystal = resources['crystal']['resources']['max']
         deuterium = resources['deuterium']['resources']['actual']
-        max_deuterium = resources['deuterium']['resources']['max']
         energy = resources['energy']['resources']['actual']
         darkmatter = resources['darkmatter']['resources']['actual']
         result = {'metal': metal, 'crystal': crystal, 'deuterium': deuterium,
-                  'energy': energy, 'darkmatter': darkmatter, 'max_metal': max_metal, 'max_crystal': max_crystal,
-                  'max_deuterium': max_deuterium}
+                  'energy': energy, 'darkmatter': darkmatter}
         return result
 
     def get_universe_speed(self, res=None):
@@ -239,20 +228,18 @@ class OGame(object):
         if not self.is_logged(html):
             raise NOT_LOGGED
         res = {}
-        res['player_id'] = int(re.search(r'playerId="(\w+)"', str(html)).group(1))
-        res['player_name'] = re.search(r'playerName="(\w+)"', str(html)).group(1)
-        tmp = re.search(r'textContent\[7\]="([^"]+)"', str(html)).group(1)
+        res['player_id'] = int(re.search(r'playerId="(\w+)"', html).group(1))
+        res['player_name'] = re.search(r'playerName="(\w+)"', html).group(1)
+        tmp = re.search(r'textContent\[7\]="([^"]+)"', html).group(1)
         soup = BeautifulSoup(tmp, 'lxml')
         tmp = soup.text
-        infos = re.search(r'([\d\\.]+) \(\S+ ([\d\.]+) \S+ ([\d\.]+)\)', tmp)
+        print(tmp)
+        infos = re.search(r'([\d\\.]+) \(Place ([\d\.]+) of ([\d\.]+)\)', tmp)
         res['points'] = parse_int(infos.group(1))
         res['rank'] = parse_int(infos.group(2))
         res['total'] = parse_int(infos.group(3))
-        res['honour_points'] = parse_int(re.search(r'textContent\[9\]="([^"]+)"', str(html)).group(1))
+        res['honour_points'] = parse_int(re.search(r'textContent\[9\]="([^"]+)"', html).group(1))
         res['planet_ids'] = self.get_planet_ids(html)
-        res['current_planets'] = re.search(r'(\d+)/(\d+)',BeautifulSoup(html, 'lxml').find('p','textCenter').text).group(1)
-        res['max_planets'] = re.search(r'(\d+)/(\d+)',
-                                           BeautifulSoup(html, 'lxml').find('p', 'textCenter').text).group(2)
         return res
 
     def get_resources_buildings(self, planet_id):
@@ -388,8 +375,7 @@ class OGame(object):
         soup = BeautifulSoup(res, 'lxml')
         planets = soup.findAll('div', {'class': 'smallplanet'})
         for planet in planets:
-            title = planet.find('a', {'class': 'planetlink'}).get('title')
-            name = re.search(r'<b>(.+) \[(\d+):(\d+):(\d+)\]</b>', title).groups()[0]
+            name = planet.find('span', {'class': 'planet-name'}).string
             if name == planet_name:
                 planet_id = planet['id'].replace('planet-', '')
                 return planet_id
@@ -397,9 +383,7 @@ class OGame(object):
 
     def build_defense(self, planet_id, defense_id, nbr):
         """Build a defense unit."""
-        print("builddef")
         if defense_id not in constants.Defense.values():
-            print("baddef")
             raise BAD_DEFENSE_ID
 
         url = self.get_url('defense', {'cp': planet_id})
@@ -415,7 +399,6 @@ class OGame(object):
                    'modus': 1,
                    'token': token,
                    'type': defense_id}
-        print("def post")
         self.session.post(url, data=payload)
 
     def build_ships(self, planet_id, ship_id, nbr):
@@ -528,16 +511,6 @@ class OGame(object):
             # debris type: 2
             # moon type: 3
             payload.update({'type': 2})  # Send to debris field
-        if mission == constants.Missions['DeployToMoon']:
-            # planet type: 1
-            # debris type: 2
-            # moon type: 3
-            payload.update({'type': 3})  # Send to The moon
-        if mission == constants.Missions['DeployToPlanet']:
-            # planet type: 1
-            # debris type: 2
-            # moon type: 3
-            payload.update({'type': 1})  # Send to Planet
         res = self.session.post(self.get_url('fleet3'), data=payload).content
 
         payload = {}
@@ -545,8 +518,8 @@ class OGame(object):
         payload.update({'crystal': resources.get('crystal'),
                         'deuterium': resources.get('deuterium'),
                         'metal': resources.get('metal'),
-                        'mission': mission,
-                        'holdingtime': acsDefHoldTime
+                        'mission': mission ,
+                        'holdingtime' : acsDefHoldTime
                         })
         res = self.session.post(self.get_url('movement'), data=payload).content
 
@@ -563,7 +536,7 @@ class OGame(object):
                 continue
             fleet_id = int(reversal_span.get('ref'))
             if dest == '[%s:%s:%s]' % (
-                    where['galaxy'], where['system'], where['position']) and origin == '[%s]' % origin_coords:
+            where['galaxy'], where['system'], where['position']) and origin == '[%s]' % origin_coords:
                 matches.append(fleet_id)
         if matches:
             return max(matches)
@@ -584,7 +557,7 @@ class OGame(object):
         fleet_ids = [span.get('ref') for span in spans]
         return fleet_ids
 
-    def get_attacks(self, checkSpyAlso=False):
+    def get_attacks(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
         res = self.session.get(self.get_url('eventList'), params={'ajax': 1},
                                headers=headers).content
@@ -592,29 +565,13 @@ class OGame(object):
         if soup.find('head'):
             raise NOT_LOGGED
         events = soup.findAll('tr', {'class': 'eventFleet'})
-        eventsDup = filter(lambda x: 'partnerInfo' not in x.get('class', []), events)
-        events = soup.findAll('tr', {'class': 'allianceAttack'})
-        events += eventsDup
-        # unsupported operand type(s) for +=: 'filter' and 'ResultSet'
-
-
+        events = filter(lambda x: 'partnerInfo' not in x.get('class', []), events)
+        events += soup.findAll('tr', {'class': 'allianceAttack'})
         attacks = []
         for event in events:
             mission_type = int(event['data-mission-type'])
-
             if mission_type not in [1, 2, 9, 6]:
-
                 continue
-
-
-            if mission_type not in [1, 2]:
-                if checkSpyAlso and mission_type not in [6]:
-                    continue
-                elif checkSpyAlso is False:
-                    continue
-                else:
-                    None
-
 
             attack = {}
             attack.update({'mission_type': mission_type})
@@ -653,8 +610,6 @@ class OGame(object):
                 attack.update({'origin': None})
                 attack.update({'is_hostile': True})
 
-            dest_moon = event.find('td', {'class': 'destFleet'}).find('figure',
-                                                                      {'class': 'planetIcon moon'}) is not None
             dest_coords = event.find('td', {'class': 'destCoords'}).text.strip()
             coords = re.search(r'\[(\d+):(\d+):(\d+)\]', dest_coords)
             galaxy, system, position = coords.groups()
@@ -668,15 +623,6 @@ class OGame(object):
             second = int(second)
             arrival_time = self.get_datetime_from_time(hour, minute, second)
             attack.update({'arrival_time': arrival_time})
-
-            #todo Mn replace 제대로
-            #attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.replace(".","").replace("Mn","").strip())})
-            try :
-                attack.update({'detailsFleet': int(event.find('td', {'class': 'detailsFleet'}).text.strip())})
-            except ValueError as ve:
-                attack.update({'detailsFleet': "(?)"})
-
-
 
             if mission_type == 1:
                 attacker_id = event.find('a', {'class': 'sendMail'})['data-playerid']
@@ -762,12 +708,6 @@ class OGame(object):
 
         infos_label = BeautifulSoup(link['title'], 'lxml').text
         infos = get_planet_infos_regex(infos_label)
-        isUnderConstruction = soup.find('table', {'class': "construction active"}).find('td', {'class': "desc timer"})
-        if isUnderConstruction is None:
-            isUnderConstruction = False
-        else:
-            isUnderConstruction = True
-
         res = {}
         res['img'] = link.find('img').get('src')
         res['id'] = planet_id
@@ -781,7 +721,6 @@ class OGame(object):
         res['fields']['built'] = int(infos.group(6))
         res['fields']['total'] = int(infos.group(7))
         res['temperature'] = {}
-        res['isUnderConstruction'] = isUnderConstruction
         if infos.groups().__len__() > 7:  # is a planet
             res['temperature']['min'] = int(infos.group(8))
             res['temperature']['max'] = int(infos.group(9))
@@ -800,6 +739,7 @@ class OGame(object):
 
     def get_overview(self, planet_id):
         html = self.session.get(self.get_url('overview', {'cp': planet_id})).content
+        update_cookies(self.session.cookies)
         if not self.is_logged(html):
             raise NOT_LOGGED
         soup = BeautifulSoup(html, 'lxml')
@@ -865,23 +805,48 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         try:
             obj = json.loads(res)
-            galaxy_view = obj['galaxy']
         except ValueError:
             raise NOT_LOGGED
-        return galaxy_view
+        return obj
 
-    def find_empty_slots(self, html):
+    def galaxy_infos(self, galaxy, system):
+        html = self.galaxy_content(galaxy, system)['galaxy']
         soup = BeautifulSoup(html, 'lxml')
-        empty_rows = soup.find_all('tr', {'class': 'empty_filter'})
-        empty_positions = []
-        if empty_rows is None:
-            return empty_positions
-        for empty_row in empty_rows:
-            empty_positions.append(empty_row.find('td', {'position'}).text)
-
-        return empty_positions
-
-
+        rows = soup.findAll('tr', {'class': 'row'})
+        res = []
+        for row in rows:
+            if 'empty_filter' not in row.get('class'):
+                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
+                print(tooltips)
+                planet_tooltip = tooltips[0]
+                planet_name = planet_tooltip.find('h1').find('span').text
+                planet_url = planet_tooltip.find('img').get('src')
+                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
+                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
+                galaxy, system, position = coords.groups()
+                planet_infos = {}
+                planet_infos['name'] = planet_name
+                planet_infos['img'] = planet_url
+                planet_infos['coordinate'] = {}
+                planet_infos['coordinate']['galaxy'] = int(galaxy)
+                planet_infos['coordinate']['system'] = int(system)
+                planet_infos['coordinate']['position'] = int(position)
+                if len(tooltips) > 1:
+                    player_tooltip = tooltips[1]
+                    player_id_raw = player_tooltip.get('id')
+                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
+                    player_name = player_tooltip.find('h1').find('span').text
+                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
+                else:
+                    player_id = None
+                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
+                    player_rank = None
+                planet_infos['player'] = {}
+                planet_infos['player']['id'] = player_id
+                planet_infos['player']['name'] = player_name
+                planet_infos['player']['rank'] = player_rank
+                res.append(planet_infos)
+        return res
 
     def get_spy_reports(self):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -896,8 +861,8 @@ class OGame(object):
         payload = {'messageId': message_id, 'action': 103, 'ajax': 1}
         url = self.get_url('messages')
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
-        return res
 
+        return res
 
     def send_spy(self, galaxy, system, position, ship_count):
         headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -929,232 +894,122 @@ class OGame(object):
         res = self.session.post(url, data=payload, headers=headers).content.decode('utf8')
         return res
 
-
     def get_flying_fleets(self):
         url = self.get_url('movement')
         res = self.session.get(url).content
         soup = BeautifulSoup(res, 'lxml')
         current_fleets = soup.find('span', {
             'class': 'current'})
-        max_fleets = soup.find('span', {
+        max_fleets = soup.find('span',{
             'class': 'all'})
         if current_fleets is None:
-            text_fleets = soup.find('span', {'class': 'tooltip advice'}).contents[1]
+            text_fleets = soup.find('span',{'class':'tooltip advice'}).contents[1]
             current_fleets = int(text_fleets.split('/')[0])
             max_fleets = int(text_fleets.split('/')[1])
             available_fleets = max_fleets - current_fleets
             fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets,
-                          'available_fleets': available_fleets}
+                          'available_fleets':available_fleets}
             return fleet_dict
         current_fleets = int(current_fleets.contents[0])
         max_fleets = int(max_fleets.contents[0])
         available_fleets = max_fleets - current_fleets
-        fleet_dict = {'current_fleets': current_fleets, 'max_fleets': max_fleets, 'available_fleets': available_fleets}
+        fleet_dict = {'current_fleets':current_fleets, 'max_fleets':max_fleets,'available_fleets':available_fleets}
         return fleet_dict
 
 
+    def get_flying_fleets_info(self):
+        url = self.get_url('movement')
+        res = self.session.get(url).content
+        soup = BeautifulSoup(res,'lxml')
+        fleets = soup.findAll('div',{
+            'class': 'fleetDetails detailsOpened'})
+        if fleets is None:
+            return '0'
+        fleet_info = []
+        for fleet in fleets:
+            fleet_token = {}
+
+            coords_origin = fleet.find('span',{
+                'class': 'originCoords tooltip'}).text.strip()
+            coords = re.search(r'\[(\d+):(\d+):(\d+)\]',coords_origin)
+            galaxy,system,position = coords.groups()
+            galaxy = int(galaxy)
+            system = int(system)
+            position = int(position)
+            fleet_token.update({'origin': (galaxy,system,position)})
+
+            dest_coords = fleet.find('span',{
+                'class': 'destinationCoords tooltip'}).text.strip()
+            coords = re.search(r'\[(\d+):(\d+):(\d+)\]',dest_coords)
+            galaxy,system,position = coords.groups()
+            galaxy = int(galaxy)
+            system = int(system)
+            position = int(position)
+            fleet_token.update({'destination': (galaxy,system,position)})
+            
+            arrival = fleet.find('div',{
+                'class': 'destination fixed'})
+            arrival = str(arrival)
+            arrival_time = re.search(r'(\d{2})\.(\d{2})\.(\d{4})',arrival)
+            month,day,year = arrival_time.groups()
+            month = int(month)
+            day = int(day)
+            year = int(year)
+
+            arrival_time = re.search(r'(\d+):(\d+):(\d+)',arrival)
+            hour,minute,second = arrival_time.groups()
+            hour = int(hour)
+            minute = int(minute)
+            second = int(second)
+            fleet_token.update({'Arrival time': (month,day,year,hour,minute,second)})
+
+            fleet_detail = fleet.find('table',{
+                'class': 'fleetinfo'}).text.replace(" ","").replace("Ships:","").replace("Shipment:","").replace("\n","").strip()
+            fleet_token.update({'fleet info' : fleet_detail})
+            
+            recall = fleet.find('span',{
+                'class': 'reversal reversal_time'})
+            if recall is not None :
+                recall = str(recall)
+                recall_time = re.search(r'(\d{2})\.(\d{2})\.(\d{4})',recall)
+                month,day,year = recall_time.groups()
+                month = int(month)
+                day = int(day)
+                year = int(year)
+
+                recall_time = re.search(r'(\d+):(\d+):(\d+)',recall)
+                hour,minute,second = recall_time.groups()
+                hour = int(hour)
+                minute = int(minute)
+                second = int(second)
+
+                fleet_token.update({'recall time': (month,day,year,hour,minute,second)})
+
+            fleet_info.append(fleet_token)
+        return fleet_info                
+
+
+    
     def jumpgate_execute(self):
         res = self.session.get(self.get_url('jumpgate_execute')).content
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return True
 
-
-
-    def send_minifleet_spy(self, where, ship_count, token):
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        payload = {'mission': 6,
-                   'galaxy': where.get('galaxy'),
-                   'system': where.get('system'),
-                   'position': where.get('position'),
-                   'type': 1,
-                   'shipCount': ship_count,
-                   'token': token,
-                   'speed': 10
-                   }
-        res = self.session.post(self.get_url('minifleet'), params={'ajax': 1}, headers=headers, data=payload).content
-        try:
-            json_response = json.loads(res)
-        except ValueError:
-            # from send_message import send_message
-            # send_message(
-            #     'No se pudo espiar a {}:{}:{}'.format(where.get('galaxy'), where.get('system'), where.get('position')))
-            return None
-        res_dict = json_response.get('response').get('success')
-        if res_dict:
-            return 'Sended spy probes'
-        return None
-
-    def get_minifleet_token(self, html):
-        token = None
-        moon_soup = BeautifulSoup(html, 'html.parser')
-        data = moon_soup.find_all('script', {'type': 'text/javascript'})
-        parameter = 'miniFleetToken'
-        for d in data:
-            d = d.text
-            if 'var miniFleetToken=' in d:
-                regex_string = 'var {parameter}="(.*?)"'.format(parameter=parameter)
-                token = re.findall(regex_string, d)
-
-        return token
-
-    def check_new_messages(self, html):
-        total_messages = 0
-        soup = BeautifulSoup(html, 'lxml')
-        messages = soup.find('span', {'class': 'totalChatMessages'})
-        if messages is not None:
-            total_messages = int(messages.attrs['data-new-messages'])
-
-        return total_messages
-
-    def get_new_messages(self):
-        msg_list = []
-        html = self.session.get(self.get_url('chat')).content
-        soup = BeautifulSoup(html, 'lxml')
-        new_chats = soup.find('ul', {'id': 'chatMsgList'}).findAll('li', {'class': 'msg_new'})
-        if new_chats is None:
-            return None
-        for chat in new_chats:
-            message = ''
-            player = ''
-            try:
-                message = chat.find('span', {'class': 'msg_content'}).contents[0]
-                player = chat.find('span', {'class': 'msg_title'}).contents[2]
-            except UnicodeEncodeError:
-                print('Error getting messages')
-            msg = {'message': message.encode('utf-8'), 'player': player.encode('utf-8')}
-            msg_list.append(msg)
-
-        return msg_list
-
-    def can_build(self, planet_id, building, building_type):
-        building_url = building_type
-        if building_type == 'supply':
-            building_url = 'resources'
-
-        html = self.session.get(self.get_url(building_url, {'cp': planet_id})).content
-        soup = BeautifulSoup(html, 'lxml')
-        is_free = soup.find('div', {'class': '{}{}'.format(building_type, building)}).find('a', {'class': 'fastBuild'})
-        if is_free is not None:
-            return True
-        else:
-            return False
-
-    def can_build_research(self, building):
-        html = self.session.get(self.get_url('research')).content
-        soup = BeautifulSoup(html, 'lxml')
-        is_free = soup.find('div', {'class': 'research{}'.format(building)}).find('a', {'class': 'fastBuild'})
-        if is_free is not None:
-            return True
-        else:
-            return False
-
-    def alliance_apply(self, alliance_id, message):
-        url = self.get_url('allianceWriteApplication', {'action': 19})
-        payload = {'text': message,
-                   'appliedAllyId': alliance_id}
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        res = self.session.post(url, headers=headers, data=payload).content
-
-    def get_ip(self):
-        res = self.session.get('http://ifconfig.me/ip')
-        return 'ip session: {}'.format(res.text.strip())
-
-    def delete_planet(self, planet_id):
-        html = self.session.get(self.get_url('planetlayer')).content
-        soup = BeautifulSoup(html, 'lxml')
-        form = soup.find('form', {'id': 'planetMaintenanceDelete'})
-        abandon = form.find('input', {'name': 'abandon'}).get('value')
-        token = form.find('input', {'name': 'token'}).get('value')
-        payload = {'abandon': abandon,
-                   'token': token,
-                   'password': self.password}
-        headers = {'X-Requested-With': 'XMLHttpRequest'}
-        check_password = self.session.post(self.get_url('checkPassword'), headers=headers, data=payload).content
-        jo = json.loads(check_password)
-        new_token = jo['newToken']
-        delete_payload = {'abandon': abandon,
-
-                         'token': new_token,
-                         'password': self.password}
-        
-        delete_action = self.session.post(self.get_url('planetGiveup'), headers=headers, data=delete_payload).content   
-
-
-
-
- 
     def Consommation(self, type, batiment, lvl):
-
         """ Retourne la consommation du batiment du level lvl + 1 """
-        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (
-        constants.Formules[type][batiment]['consommation'][1] ** lvl)
-        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl + 1) * (
-        constants.Formules[type][batiment]['consommation'][1] ** (lvl + 1))
+        energieLvl = constants.Formules[type][batiment]['consommation'][0] * lvl * (constants.Formules[type][batiment]['consommation'][1]**lvl)
+        energieNextLvl = constants.Formules[type][batiment]['consommation'][0] * (lvl+1) * (constants.Formules[type][batiment]['consommation'][1]**(lvl+1))
         return math.floor(energieNextLvl - energieLvl)
 
     def building_cost(self, type, batiment, lvl):
         """ Retourne le cout d'un batiment lvl + 1 """
         cost = {}
-        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0] *
-                                       constants.Formules[type][batiment]['cout']['Metal'][1] ** (lvl - 1)))
-        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0] *
-                                         constants.Formules[type][batiment]['cout']['Crystal'][1] ** (lvl - 1)))
-        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0] *
-                                           constants.Formules[type][batiment]['cout']['Deuterium'][1] ** (lvl - 1)))
+        cost['metal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Metal'][0]*constants.Formules[type][batiment]['cout']['Metal'][1]**(lvl-1)))
+        cost['crystal'] = int(math.floor(constants.Formules[type][batiment]['cout']['Crystal'][0]*constants.Formules[type][batiment]['cout']['Crystal'][1]**(lvl-1)))
+        cost['deuterium'] = int(math.floor(constants.Formules[type][batiment]['cout']['Deuterium'][0]*constants.Formules[type][batiment]['cout']['Deuterium'][1]**(lvl-1)))
         return cost
-
-
-    def getProduction(self, type, batiment, lvl):
-        """ Retourne le cout d'un batiment lvl + 1 """
-        production = 0
-        production = (self.universe_speed * constants.Formules[type][batiment]['production'][0] * lvl *
-                      (constants.Formules[type][batiment]['production'][1] ** lvl) ) + \
-                     self.universe_speed * constants.Formules[type][batiment]['production'][0]
-
-
-        return production
-
 
     def storageSize(self, type, batiment, lvl):
         capacity = -1
-        capacity = 5000 * int(math.floor(2.5 * (math.e ** (lvl * 20 / 33))))
+        capacity = 5000 * int(math.floor(2.5 * (math.e ** ( constants.Formules[type][batiment] * 20 / 33))))
         return capacity
-
-
-    def galaxy_infos(self, galaxy, system):
-        html = self.galaxy_content(galaxy, system)['galaxy']
-        soup = BeautifulSoup(html, 'lxml')
-        rows = soup.findAll('tr', {'class': 'row'})
-        res = []
-        for row in rows:
-            if 'empty_filter' not in row.get('class'):
-                tooltips = row.findAll('div', {'class': 'htmlTooltip'})
-                planet_tooltip = tooltips[0]
-                planet_name = planet_tooltip.find('h1').find('span').text
-                planet_url = planet_tooltip.find('img').get('src')
-                coords_raw = planet_tooltip.find('span', {'id': 'pos-planet'}).text
-                coords = re.search(r'\[(\d+):(\d+):(\d+)\]', coords_raw)
-                galaxy, system, position = coords.groups()
-                planet_infos = {}
-                planet_infos['name'] = planet_name
-                planet_infos['img'] = planet_url
-                planet_infos['coordinate'] = {}
-                planet_infos['coordinate']['galaxy'] = int(galaxy)
-                planet_infos['coordinate']['system'] = int(system)
-                planet_infos['coordinate']['position'] = int(position)
-                if len(tooltips) > 1:
-                    player_tooltip = tooltips[1]
-                    player_id_raw = player_tooltip.get('id')
-                    player_id = int(re.search(r'player(\d+)', player_id_raw).groups()[0])
-                    player_name = player_tooltip.find('h1').find('span').text
-                    player_rank = parse_int(player_tooltip.find('li', {'class': 'rank'}).find('a').text)
-                else:
-                    player_id = None
-                    player_name = row.find('td', {'class': 'playername'}).find('span').text.strip()
-                    player_rank = None
-                planet_infos['player'] = {}
-                planet_infos['player']['id'] = player_id
-                planet_infos['player']['name'] = player_name
-                planet_infos['player']['rank'] = player_rank
-                res.append(planet_infos)
-        return res
